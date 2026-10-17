@@ -1,0 +1,25 @@
+spring:
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisReactiveAutoConfiguration
+  datasource:
+    url: jdbc:h2:mem:blogtest;MODE=MySQL;DATABASE_TO_LOWER=TRUE;CASE_INSENSITIVE_IDENTIFIERS=TRUE;DB_CLOSE_DELAY=-1
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  flyway:
+    enabled: true
+  data:
+    redis:
+      repositories:
+        enabled: false
+
+blog:
+  jwt:
+    secret: dGVzdC1vbmx5LWJsb2ctaG1hYy1rZXktMzJieXRlcy1sb25nZXI=
+  admin:
+    password: Admin@123456
+  demo-data: false
+  rate-limit:
+    enabled: false

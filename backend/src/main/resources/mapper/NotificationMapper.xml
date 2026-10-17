@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.blog.notification.NotificationMapper">
+
+    <resultMap id="NotificationResult" type="com.blog.notification.Notification">
+        <id column="id" property="id"/>
+        <result column="user_id" property="userId"/>
+        <result column="type" property="type"/>
+        <result column="actor_id" property="actorId"/>
+        <result column="article_id" property="articleId"/>
+        <result column="comment_id" property="commentId"/>
+        <result column="content_preview" property="contentPreview"/>
+        <result column="is_read" property="readFlag"/>
+        <result column="created_at" property="createdAt"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="com.blog.notification.Notification"
+            useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        INSERT INTO notifications (user_id, type, actor_id, article_id, comment_id,
+                                   content_preview, is_read, created_at)
+        VALUES (#{userId}, #{type}, #{actorId}, #{articleId}, #{commentId},
+                #{contentPreview}, #{readFlag}, #{createdAt})
+    </insert>
+
+    <select id="selectByUser" resultMap="NotificationResult">
+        SELECT id, user_id, type, actor_id, article_id, comment_id,
+               content_preview, is_read, created_at
+        FROM notifications
+        WHERE user_id = #{userId}
+        <if test="unreadOnly">
+            AND is_read = 0
+        </if>
+        <if test="cursorTime != null">
+            AND (created_at &lt; #{cursorTime}
+                 OR (created_at = #{cursorTime} AND id &lt; #{cursorId}))
+        </if>
+        ORDER BY created_at DESC, id DESC
+        LIMIT #{limit}
+    </select>
+
+    <select id="countUnread" resultType="long">
+        SELECT COUNT(*) FROM notifications
+        WHERE user_id = #{userId} AND is_read = 0
+    </select>
+
+    <update id="markAllRead">
+        UPDATE notifications
+        SET is_read = 1
+        WHERE user_id = #{userId} AND is_read = 0
+    </update>
+
+    <update id="markRead">
+        UPDATE notifications
+        SET is_read = 1
+        WHERE user_id = #{userId}
+          AND id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </update>
+
+</mapper>

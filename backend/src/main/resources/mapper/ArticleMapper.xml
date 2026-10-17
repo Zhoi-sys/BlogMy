@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.blog.article.ArticleMapper">
+
+    <sql id="columns">
+        id, author_id, title, summary, content_md, content_html, status,
+        view_count, like_count, comment_count, reading_minutes, publish_time,
+        created_at, updated_at, deleted
+    </sql>
+
+    <select id="selectById" resultType="com.blog.article.Article">
+        SELECT <include refid="columns"/>
+        FROM articles
+        WHERE id = #{id} AND deleted = 0
+    </select>
+
+    <select id="selectByIds" resultType="com.blog.article.Article">
+        SELECT <include refid="columns"/>
+        FROM articles
+        WHERE deleted = 0
+          AND id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+
+    <!-- 首页 Feed：仅已发布文章，按发布时间倒序，游标由发布时间 + id 构成。 -->
+    <select id="selectFeed" resultType="com.blog.article.Article">
+        SELECT <include refid="columns"/>
+        FROM articles
+        WHERE deleted = 0
+          AND status = 1
+          AND publish_time IS NOT NULL
+        <if test="keyword != null and keyword != ''">
+            AND (title LIKE CONCAT('%', #{keyword}, '%')
+                 OR summary LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        <if test="cursorTime != null">
+            AND (publish_time &lt; #{cursorTime}
+                 OR (publish_time = #{cursorTime} AND id &lt; #{cursorId}))
+        </if>
+        ORDER BY publish_time DESC, id DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- 个人空间：已发布文章按发布时间。 -->
+    <select id="selectPublishedByAuthor" resultType="com.blog.article.Article">
+        SELECT <include refid="columns"/>
+        FROM articles
+        WHERE deleted = 0
+          AND author_id = #{authorId}
+          AND status = 1
+          AND publish_time IS NOT NULL
+        <if test="cursorTime != null">
+            AND (publish_time &lt; #{cursorTime}
+                 OR (publish_time = #{cursorTime} AND id &lt; #{cursorId}))
+        </if>
+        ORDER BY publish_time DESC, id DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- 草稿/下架文章按创建时间倒序。 -->
+    <select id="selectAuthorArticlesByStatus" resultType="com.blog.article.Article">
+        SELECT <include refid="columns"/>
+        FROM articles
+        WHERE deleted = 0
+          AND author_id = #{authorId}
+          AND status = #{status}
+        <if test="cursorTime != null">
+            AND (created_at &lt; #{cursorTime}
+                 OR (created_at = #{cursorTime} AND id &lt; #{cursorId}))
+        </if>
+        ORDER BY created_at DESC, id DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- 后台管理列表按最后更新时间倒序。 -->
+    <select id="selectManage" resultType="com.blog.article.Article">
+        SELECT <include refid="columns"/>
+        FROM articles
+        WHERE deleted = 0
+          AND author_id = #{authorId}
+        <if test="status != null">
+            AND status = #{status}
+        </if>
+        <if test="cursorTime != null">
+            AND (updated_at &lt; #{cursorTime}
+                 OR (updated_at = #{cursorTime} AND id &lt; #{cursorId}))
+        </if>
+        ORDER BY updated_at DESC, id DESC
+        LIMIT #{limit}
+    </select>
+
+    <select id="countAll" resultType="long">
+        SELECT COUNT(*) FROM articles WHERE deleted = 0
+    </select>
+
+    <!-- 新建文章。content_html 与 reading_minutes 在发布链路中生成。 -->
+    <insert id="insert" parameterType="com.blog.article.Article"
+            useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        INSERT INTO articles (author_id, title, summary, content_md, content_html, status,
+                              view_count, like_count, comment_count, reading_minutes,
+                              publish_time, created_at, updated_at, deleted)
+        VALUES (#{authorId}, #{title}, #{summary}, #{contentMd}, #{contentHtml}, #{status},
+                #{viewCount}, #{likeCount}, #{commentCount}, #{readingMinutes},
+                #{publishTime}, #{createdAt}, #{updatedAt}, 0)
+    </insert>
+
+    <!-- 编辑只更新内容与元信息，绝不覆盖计数器和软删除标记。 -->
+    <update id="update" parameterType="com.blog.article.Article">
+        UPDATE articles
+        SET title = #{title},
+            summary = #{summary},
+            content_md = #{contentMd},
+            content_html = #{contentHtml},
+            reading_minutes = #{readingMinutes},
+            updated_at = #{updatedAt}
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <update id="updateStatus">
+        UPDATE articles
+        SET status = #{status},
+            publish_time = #{publishTime},
+            updated_at = #{updatedAt}
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <update id="softDelete">
+        UPDATE articles
+        SET deleted = 1,
+            updated_at = #{updatedAt}
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <!-- 计数字段使用数据库原子自增，避免并发下读改写丢失。 -->
+    <update id="incrementViewCount">
+        UPDATE articles SET view_count = view_count + 1 WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <update id="incrementLikeCount">
+        UPDATE articles SET like_count = like_count + 1 WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <update id="decrementLikeCount">
+        UPDATE articles
+        SET like_count = CASE WHEN like_count > 0 THEN like_count - 1 ELSE 0 END
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <update id="incrementCommentCount">
+        UPDATE articles SET comment_count = comment_count + 1 WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <update id="decrementCommentCount">
+        UPDATE articles
+        SET comment_count = CASE WHEN comment_count > 0 THEN comment_count - 1 ELSE 0 END
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <select id="countPublishedByAuthor" resultType="long">
+        SELECT COUNT(*) FROM articles
+        WHERE author_id = #{authorId} AND status = 1 AND deleted = 0
+    </select>
+
+    <select id="sumPublishedLikesByAuthor" resultType="long">
+        SELECT COALESCE(SUM(like_count), 0) FROM articles
+        WHERE author_id = #{authorId} AND status = 1 AND deleted = 0
+    </select>
+
+    <select id="sumPublishedViewsByAuthor" resultType="long">
+        SELECT COALESCE(SUM(view_count), 0) FROM articles
+        WHERE author_id = #{authorId} AND status = 1 AND deleted = 0
+    </select>
+
+    <select id="sumPublishedCommentsByAuthor" resultType="long">
+        SELECT COALESCE(SUM(comment_count), 0) FROM articles
+        WHERE author_id = #{authorId} AND status = 1 AND deleted = 0
+    </select>
+
+    <select id="sumAllPublishedLikes" resultType="long">
+        SELECT COALESCE(SUM(like_count), 0) FROM articles
+        WHERE status = 1 AND deleted = 0
+    </select>
+
+</mapper>

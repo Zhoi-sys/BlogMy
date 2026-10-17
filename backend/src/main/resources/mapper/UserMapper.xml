@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.blog.user.UserMapper">
+
+    <!-- 用户查询统一只返回必要字段；password 仅在认证查询中返回。 -->
+    <sql id="publicColumns">
+        id, username, nickname, avatar_url, bio, role, status, created_at, updated_at
+    </sql>
+
+    <select id="selectById" resultType="com.blog.user.User">
+        SELECT <include refid="publicColumns"/>
+        FROM users
+        WHERE id = #{id}
+    </select>
+
+    <select id="selectByUsername" resultType="com.blog.user.User">
+        SELECT id, username, password, nickname, avatar_url, bio, role, status, created_at, updated_at
+        FROM users
+        WHERE username = #{username}
+        LIMIT 1
+    </select>
+
+    <select id="selectFirstAdmin" resultType="com.blog.user.User">
+        SELECT <include refid="publicColumns"/>
+        FROM users
+        WHERE role = 9 AND status = 1
+        ORDER BY id ASC
+        LIMIT 1
+    </select>
+
+    <!-- @ 联想搜索：按用户名/昵称模糊匹配，最多返回 8 条。 -->
+    <select id="search" resultType="com.blog.user.User">
+        SELECT <include refid="publicColumns"/>
+        FROM users
+        WHERE status = 1
+        <if test="excludeUserId != null">
+            AND id != #{excludeUserId}
+        </if>
+        AND (username LIKE CONCAT('%', #{keyword}, '%')
+             OR nickname LIKE CONCAT('%', #{keyword}, '%'))
+        ORDER BY id ASC
+        LIMIT #{limit}
+    </select>
+
+    <select id="selectByIds" resultType="com.blog.user.User">
+        SELECT <include refid="publicColumns"/>
+        FROM users
+        WHERE id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+
+    <!-- 注册。时间戳由应用层写入，避免依赖数据库时区。 -->
+    <insert id="insert" parameterType="com.blog.user.User"
+            useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        INSERT INTO users (username, password, nickname, avatar_url, bio, role, status, created_at, updated_at)
+        VALUES (#{username}, #{password}, #{nickname}, #{avatarUrl}, #{bio}, #{role}, #{status},
+                #{createdAt}, #{updatedAt})
+    </insert>
+
+    <update id="updateProfile">
+        UPDATE users
+        SET nickname = #{nickname},
+            bio = #{bio},
+            updated_at = #{updatedAt}
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateRole">
+        UPDATE users
+        SET role = #{role},
+            updated_at = #{updatedAt}
+        WHERE id = #{id}
+    </update>
+
+</mapper>

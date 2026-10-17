@@ -1,0 +1,95 @@
+services:
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-change-root-password}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-blog}
+      MYSQL_USER: ${MYSQL_USER:-blog}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-change-db-password}
+      TZ: Asia/Shanghai
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-change-root-password}"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  redis:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-blog}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+      DB_USERNAME: ${MYSQL_USER:-blog}
+      DB_PASSWORD: ${MYSQL_PASSWORD:-change-db-password}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_SECRET: ${JWT_SECRET:-cmVwbGFjZS10aGlzLXdpdGgtYS1sb25nLXJhbmRvbS1zZWNyZXQta2V5}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-ChangeMe_Admin123}
+      ADMIN_NICKNAME: ${ADMIN_NICKNAME:-站长}
+      BLOG_TITLE: ${BLOG_TITLE:-墨迹 · Inkwell}
+      BLOG_DESCRIPTION: ${BLOG_DESCRIPTION:-一个关于代码、设计与长期主义的个人空间。}
+      BLOG_URL: ${BLOG_URL:-http://localhost:8080}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:8080}
+      BLOG_DEMO_DATA: ${BLOG_DEMO_DATA:-false}
+      TZ: Asia/Shanghai
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health | grep -q UP"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        NUXT_API_BASE: http://backend:8080/api
+        NUXT_PUBLIC_API_BASE: /api
+        NUXT_PUBLIC_SITE_URL: ${BLOG_URL:-http://localhost:8080}
+    restart: unless-stopped
+    environment:
+      NUXT_API_BASE: http://backend:8080/api
+      NUXT_PUBLIC_API_BASE: /api
+      NUXT_PUBLIC_SITE_URL: ${BLOG_URL:-http://localhost:8080}
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    volumes:
+      - ./deploy/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - frontend
+
+volumes:
+  mysql_data:
+  redis_data:

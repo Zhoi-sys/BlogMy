@@ -1,0 +1,74 @@
+server:
+  port: ${SERVER_PORT:8080}
+  forward-headers-strategy: framework
+  servlet:
+    encoding:
+      charset: UTF-8
+      force: true
+  shutdown: graceful
+  compression:
+    enabled: true
+
+mybatis:
+  mapper-locations: classpath:/mapper/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+    jdbc-type-for-null: NULL
+
+spring:
+  application:
+    name: personal-blog
+  datasource:
+    url: ${DB_URL:jdbc:mysql://localhost:3306/blog?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true}
+    username: ${DB_USERNAME:blog}
+    password: ${DB_PASSWORD:blog}
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 4
+      connection-timeout: 5000
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      timeout: 2s
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+  jackson:
+    default-property-inclusion: non_null
+    time-zone: Asia/Shanghai
+  lifecycle:
+    timeout-per-shutdown-phase: 20s
+  web:
+    resources:
+      add-mappings: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never
+
+blog:
+  jwt:
+    secret: ${JWT_SECRET:}
+    access-ttl: 2h
+    refresh-ttl: 7d
+  admin:
+    username: ${ADMIN_USERNAME:admin}
+    password: ${ADMIN_PASSWORD:}
+    nickname: ${ADMIN_NICKNAME:站长}
+  site:
+    title: ${BLOG_TITLE:墨迹 · Inkwell}
+    description: ${BLOG_DESCRIPTION:一个关于代码、设计与长期主义的个人空间。}
+    url: ${BLOG_URL:http://localhost:3000}
+  cors:
+    allowed-origins: ${CORS_ORIGINS:http://localhost:3000}
+  rate-limit:
+    enabled: ${RATE_LIMIT_ENABLED:true}
+  demo-data: false

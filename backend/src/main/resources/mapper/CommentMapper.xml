@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.blog.interaction.CommentMapper">
+
+    <sql id="columns">
+        id, user_id, article_id, parent_id, reply_to_user_id, content,
+        like_count, status, deleted, created_at, updated_at
+    </sql>
+
+    <select id="selectById" resultType="com.blog.interaction.Comment">
+        SELECT <include refid="columns"/>
+        FROM comments
+        WHERE id = #{id}
+    </select>
+
+    <!-- 一级评论按时间倒序，软删除评论仍返回，用于保留回复上下文。 -->
+    <select id="selectRoots" resultType="com.blog.interaction.Comment">
+        SELECT <include refid="columns"/>
+        FROM comments
+        WHERE article_id = #{articleId}
+          AND parent_id = 0
+        <if test="cursorTime != null">
+            AND (created_at &lt; #{cursorTime}
+                 OR (created_at = #{cursorTime} AND id &lt; #{cursorId}))
+        </if>
+        ORDER BY created_at DESC, id DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- 回复按对话顺序升序分页。 -->
+    <select id="selectReplies" resultType="com.blog.interaction.Comment">
+        SELECT <include refid="columns"/>
+        FROM comments
+        WHERE parent_id = #{rootId}
+        <if test="cursorTime != null">
+            AND (created_at &gt; #{cursorTime}
+                 OR (created_at = #{cursorTime} AND id &gt; #{cursorId}))
+        </if>
+        ORDER BY created_at ASC, id ASC
+        LIMIT #{limit}
+    </select>
+
+    <!-- 每条一级评论批量取前 N 条回复，使用窗口函数避免 N+1。 -->
+    <select id="selectPreviewReplies" resultType="com.blog.interaction.Comment">
+        SELECT * FROM (
+            SELECT c.*,
+                   ROW_NUMBER() OVER (
+                       PARTITION BY c.parent_id
+                       ORDER BY c.created_at ASC, c.id ASC
+                   ) AS rn
+            FROM comments c
+            WHERE c.parent_id IN
+            <foreach collection="parentIds" item="parentId" open="(" separator="," close=")">
+                #{parentId}
+            </foreach>
+        ) preview
+        WHERE preview.rn &lt;= #{limit}
+        ORDER BY preview.parent_id ASC, preview.created_at ASC, preview.id ASC
+    </select>
+
+    <select id="countReplies" resultType="com.blog.interaction.CommentMapper$ReplyCount">
+        SELECT parent_id AS parent_id,
+               COUNT(*) AS reply_count
+        FROM comments
+        WHERE parent_id IN
+        <foreach collection="parentIds" item="parentId" open="(" separator="," close=")">
+            #{parentId}
+        </foreach>
+        GROUP BY parent_id
+    </select>
+
+    <insert id="insert" parameterType="com.blog.interaction.Comment"
+            useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        INSERT INTO comments (user_id, article_id, parent_id, reply_to_user_id, content,
+                              like_count, status, deleted, created_at, updated_at)
+        VALUES (#{userId}, #{articleId}, #{parentId}, #{replyToUserId}, #{content},
+                #{likeCount}, #{status}, #{deleted}, #{createdAt}, #{updatedAt})
+    </insert>
+
+    <update id="updateDeleted">
+        UPDATE comments
+        SET deleted = 1,
+            updated_at = #{updatedAt}
+        WHERE id = #{id}
+    </update>
+
+    <update id="incrementLikeCount">
+        UPDATE comments SET like_count = like_count + 1 WHERE id = #{id} AND deleted = 0
+    </update>
+
+    <update id="decrementLikeCount">
+        UPDATE comments
+        SET like_count = CASE WHEN like_count > 0 THEN like_count - 1 ELSE 0 END
+        WHERE id = #{id} AND deleted = 0
+    </update>
+
+</mapper>
