@@ -26,6 +26,15 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+/**
+ * 文章领域服务实现。
+ *
+ * <p>负责文章查询、内容渲染、标签规范化、发布状态机与阅读量防刷。写入操作在
+ * 事务内完成文章落库与标签替换；详情读取只对作者暴露原始 Markdown，公开响应
+ * 使用服务端清洗后的 HTML。</p>
+ *
+ * @since 1.0.0
+ */
 @Service
 public class ArticleServiceImpl implements ArticleService {
 
@@ -37,10 +46,17 @@ public class ArticleServiceImpl implements ArticleService {
     private final CursorCodec cursorCodec;
     private final KeyValueStore store;
 
-    public ArticleServiceImpl(ArticleMapper articleMapper, ArticleTagMapper tagMapper,
-                              UserService userService, ArticleViewAssembler viewAssembler,
-                              MarkdownRenderer renderer, CursorCodec cursorCodec,
-                              KeyValueStore store) {
+    /**
+     * 创建 {@code ArticleServiceImpl} 实例，依赖由 Spring 注入。
+     * @param articleMapper 依赖组件
+     * @param tagMapper 依赖组件
+     * @param userService 依赖组件
+     * @param viewAssembler 依赖组件
+     * @param renderer 依赖组件
+     * @param cursorCodec 依赖组件
+     * @param store 依赖组件
+     */
+    public ArticleServiceImpl(ArticleMapper articleMapper, ArticleTagMapper tagMapper, UserService userService, ArticleViewAssembler viewAssembler, MarkdownRenderer renderer, CursorCodec cursorCodec, KeyValueStore store) {
         this.articleMapper = articleMapper;
         this.tagMapper = tagMapper;
         this.userService = userService;
@@ -50,6 +66,9 @@ public class ArticleServiceImpl implements ArticleService {
         this.store = store;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public PageResult<ArticleDtos.ArticleCard> feed(String keyword, String cursor, int size) {
         int fetchSize = fetchSize(size);
@@ -61,6 +80,9 @@ public class ArticleServiceImpl implements ArticleService {
                 article -> cursorCodec.encode(article.getPublishTime(), article.getId()));
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public PageResult<ArticleDtos.ArticleCard> listByAuthor(Long authorId, Integer status, String cursor,
                                                             int size, UserPrincipal principal) {
@@ -83,6 +105,9 @@ public class ArticleServiceImpl implements ArticleService {
                 byPublishTime ? article.getPublishTime() : article.getCreatedAt(), article.getId()));
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public PageResult<ArticleDtos.ArticleCard> manage(Integer status, String cursor, int size,
                                                       UserPrincipal principal) {
@@ -96,6 +121,9 @@ public class ArticleServiceImpl implements ArticleService {
                 article -> cursorCodec.encode(article.getUpdatedAt(), article.getId()));
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public ArticleDtos.ArticleDetail detail(Long id, UserPrincipal principal, String ip) {
         Article article = articleMapper.selectById(id);
@@ -116,6 +144,9 @@ public class ArticleServiceImpl implements ArticleService {
         return viewAssembler.toDetail(article, principal, canEdit);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     @Transactional
     public ArticleDtos.ArticleRef create(ArticleDtos.ArticleRequest request, UserPrincipal principal) {
@@ -144,6 +175,9 @@ public class ArticleServiceImpl implements ArticleService {
         return new ArticleDtos.ArticleRef(article.getId(), article.getStatus());
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     @Transactional
     public ArticleDtos.ArticleRef update(Long id, ArticleDtos.ArticleRequest request, UserPrincipal principal) {
@@ -159,6 +193,9 @@ public class ArticleServiceImpl implements ArticleService {
         return new ArticleDtos.ArticleRef(article.getId(), article.getStatus());
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     @Transactional
     public ArticleDtos.ArticleRef changeStatus(Long id, String action, UserPrincipal principal) {
@@ -176,6 +213,9 @@ public class ArticleServiceImpl implements ArticleService {
         return new ArticleDtos.ArticleRef(id, article.getStatus());
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public long totalPublishedLikes() {
         return articleMapper.sumAllPublishedLikes();

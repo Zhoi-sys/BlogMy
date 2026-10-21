@@ -132,9 +132,20 @@ pnpm preview
 
 集成测试覆盖：注册/登录、文章发布、GFM/Mermaid 渲染、XSS 清洗、点赞幂等、@ 提及、二级回复、通知类型、Refresh Token 轮换。
 
-## 7. 关键设计说明
+## 7. 生成 Javadoc
 
-### 7.1 Markdown 自动适配
+后端所有公开类、Service 接口、Controller 接口、Mapper、DTO 与配置类均已补充 Javadoc，包含参数、返回值、权限与状态语义说明。
+
+```powershell
+cd backend
+.\mvnw.cmd javadoc:javadoc
+```
+
+生成结果：`backend/target/reports/apidocs/index.html`。
+
+## 8. 关键设计说明
+
+### 8.1 Markdown 自动适配
 
 1. 正文以 Markdown 为唯一内容源。
 2. 发布/保存时由后端 Flexmark 渲染为 HTML：GFM 表格、删除线、任务列表、脚注、自动链接。
@@ -143,7 +154,7 @@ pnpm preview
 5. Mermaid 源码保留在 `<code class="language-mermaid">` 中，浏览器进入阅读页后按需动态加载 mermaid 渲染；渲染失败展示源码和友好提示，不阻塞整页。
 6. 代码块由前端 highlight.js 高亮，KaTeX 处理数学公式，图片支持 Lightbox。
 
-### 7.2 Service 接口与实现分离
+### 8.2 Service 接口与实现分离
 
 每个领域服务均为 `XxxService` 接口 + `impl/XxxServiceImpl`。公共读模型拼装被拆到：
 
@@ -155,11 +166,11 @@ pnpm preview
 
 因此 Service 实现只保留业务规则、事务边界与权限判断。
 
-### 7.3 MyBatis XML
+### 8.3 MyBatis XML
 
 所有自定义 SQL 均在 XML 中；不使用 MyBatis-Plus Wrapper，也不在注解里写 SQL。`UserMapper.xml`、`ArticleMapper.xml`、`CommentMapper.xml` 等文件带中文注释，分页使用 `publish_time/id`、`created_at/id` 游标而不是深分页 OFFSET。计数字段使用数据库原子自增，避免并发读改写丢失。
 
-### 7.4 认证与安全
+### 8.4 认证与安全
 
 - Access Token 2 小时，Refresh Token 7 天且一次性轮换；
 - 登出把 Access Token 的 `jti` 写入 Redis 黑名单（TTL = 剩余有效期）；
@@ -168,7 +179,7 @@ pnpm preview
 - SQL 注入：MyBatis 参数绑定，无 `${}` 拼接；
 - CSRF：JWT 放 Authorization Header；前端通过 Cookie 持久化 Token 以便 SSR 恢复登录态（生产环境建议进一步改为 BFF HttpOnly Cookie）。
 
-### 7.5 与 TRD 的落地差异
+### 8.5 与 TRD 的落地差异
 
 | TRD | 本次实现 | 原因 |
 |---|---|---|
@@ -178,10 +189,10 @@ pnpm preview
 | 首页 Feed Redis 缓存 60s | 直接查询 MySQL + 游标 | 规模 ≤5k 文章，避免缓存一致性成本；接口保留演进空间 |
 | 无 Service 分层约束 | 接口/实现 + Assembler | 按最新要求解耦并降低单类复杂度 |
 
-## 8. 一期边界
+## 9. 一期边界
 
 视频发布/播放、图片上传与媒体中心、头像上传、多博主、分类归档、关注/收藏、私信、第三方登录、邮件通知、全文搜索均不在本期。文章中图片仅支持外链；编辑器的图片粘贴会提示先使用图床。
 
-## 9. API 与数据
+## 10. API 与数据
 
 完整接口清单见 [`docs/API.md`](docs/API.md)；数据库结构见 `backend/src/main/resources/db/migration/V1__init.sql`。

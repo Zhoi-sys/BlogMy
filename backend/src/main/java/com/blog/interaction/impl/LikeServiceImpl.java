@@ -15,6 +15,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
+/**
+ * 点赞领域服务实现。
+ *
+ * <p>文章与评论点赞共用一张表，唯一索引保证幂等。只有实际插入/删除成功时才
+ * 调整目标计数，避免并发双击造成计数漂移。</p>
+ *
+ * @since 1.0.0
+ */
 @Service
 public class LikeServiceImpl implements LikeService {
 
@@ -22,12 +30,21 @@ public class LikeServiceImpl implements LikeService {
     private final ArticleMapper articleMapper;
     private final CommentMapper commentMapper;
 
+    /**
+     * 创建 {@code LikeServiceImpl} 实例，依赖由 Spring 注入。
+     * @param likeMapper 依赖组件
+     * @param articleMapper 依赖组件
+     * @param commentMapper 依赖组件
+     */
     public LikeServiceImpl(LikeMapper likeMapper, ArticleMapper articleMapper, CommentMapper commentMapper) {
         this.likeMapper = likeMapper;
         this.articleMapper = articleMapper;
         this.commentMapper = commentMapper;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     @Transactional
     public InteractionDtos.LikeResult like(Long userId, InteractionDtos.LikeRequest request) {
@@ -37,6 +54,9 @@ public class LikeServiceImpl implements LikeService {
                 : likeComment(userId, request);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     @Transactional
     public InteractionDtos.LikeResult unlike(Long userId, InteractionDtos.LikeRequest request) {
@@ -56,6 +76,9 @@ public class LikeServiceImpl implements LikeService {
         return new InteractionDtos.LikeResult(false, fresh == null ? 0 : fresh.getLikeCount());
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public boolean isLiked(Long userId, int targetType, Long targetId) {
         return userId != null && likeMapper.countByUserAndTarget(userId, targetType, targetId) > 0;

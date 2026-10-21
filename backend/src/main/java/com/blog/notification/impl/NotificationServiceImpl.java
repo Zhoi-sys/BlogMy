@@ -21,6 +21,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * 站内通知领域服务实现。
+ *
+ * <p>同一评论按“回复 > 提及 > 文章评论”的优先级为每个接收人只生成一条通知，
+ * 排除评论者本人；列表读取通过 Assembler 批量加载操作者与文章标题。</p>
+ *
+ * @since 1.0.0
+ */
 @Service
 public class NotificationServiceImpl implements NotificationService {
 
@@ -29,10 +37,14 @@ public class NotificationServiceImpl implements NotificationService {
     private final CommentContentRenderer contentRenderer;
     private final CursorCodec cursorCodec;
 
-    public NotificationServiceImpl(NotificationMapper notificationMapper,
-                                   NotificationViewAssembler viewAssembler,
-                                   CommentContentRenderer contentRenderer,
-                                   CursorCodec cursorCodec) {
+    /**
+     * 创建 {@code NotificationServiceImpl} 实例，依赖由 Spring 注入。
+     * @param notificationMapper 依赖组件
+     * @param viewAssembler 依赖组件
+     * @param contentRenderer 依赖组件
+     * @param cursorCodec 依赖组件
+     */
+    public NotificationServiceImpl(NotificationMapper notificationMapper, NotificationViewAssembler viewAssembler, CommentContentRenderer contentRenderer, CursorCodec cursorCodec) {
         this.notificationMapper = notificationMapper;
         this.viewAssembler = viewAssembler;
         this.contentRenderer = contentRenderer;
@@ -71,6 +83,9 @@ public class NotificationServiceImpl implements NotificationService {
         });
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public PageResult<InteractionDtos.NotificationView> list(UserPrincipal principal, boolean unreadOnly,
                                                               String cursor, int size) {
@@ -83,6 +98,9 @@ public class NotificationServiceImpl implements NotificationService {
         return viewAssembler.toPage(rows, size);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     @Transactional
     public int markRead(UserPrincipal principal, InteractionDtos.ReadRequest request) {
@@ -102,6 +120,9 @@ public class NotificationServiceImpl implements NotificationService {
         return notificationMapper.markRead(principal.id(), ids);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public long unreadCount(UserPrincipal principal) {
         return notificationMapper.countUnread(principal.id());

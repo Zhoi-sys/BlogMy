@@ -25,6 +25,15 @@ import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.Locale;
 
+/**
+ * 认证领域服务实现。
+ *
+ * <p>注册时规范化用户名并主动检查重复，唯一索引兜底并发注册；登录使用 BCrypt
+ * 校验密码并做 IP + 用户名双维度限流；Refresh Token 为随机不透明字符串，
+ * 存储于 Redis/内存并一次性轮换；登出将 Access Token 的 jti 加入黑名单。</p>
+ *
+ * @since 1.0.0
+ */
 @Service
 public class AuthServiceImpl implements AuthService {
 
@@ -39,9 +48,18 @@ public class AuthServiceImpl implements AuthService {
     private final BlogProperties properties;
     private final RateLimiter rateLimiter;
 
-    public AuthServiceImpl(UserMapper userMapper, UserService userService, UserViewMapper userViewMapper,
-                           PasswordEncoder passwordEncoder, JwtService jwtService, KeyValueStore store,
-                           BlogProperties properties, RateLimiter rateLimiter) {
+    /**
+     * 创建 {@code AuthServiceImpl} 实例，依赖由 Spring 注入。
+     * @param userMapper 依赖组件
+     * @param userService 依赖组件
+     * @param userViewMapper 依赖组件
+     * @param passwordEncoder 依赖组件
+     * @param jwtService 依赖组件
+     * @param store 依赖组件
+     * @param properties 依赖组件
+     * @param rateLimiter 依赖组件
+     */
+    public AuthServiceImpl(UserMapper userMapper, UserService userService, UserViewMapper userViewMapper, PasswordEncoder passwordEncoder, JwtService jwtService, KeyValueStore store, BlogProperties properties, RateLimiter rateLimiter) {
         this.userMapper = userMapper;
         this.userService = userService;
         this.userViewMapper = userViewMapper;
@@ -52,6 +70,9 @@ public class AuthServiceImpl implements AuthService {
         this.rateLimiter = rateLimiter;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     @Transactional
     public AuthDtos.TokenResponse register(AuthDtos.RegisterRequest request, String ip) {
@@ -79,6 +100,9 @@ public class AuthServiceImpl implements AuthService {
         return issueTokens(user);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public AuthDtos.TokenResponse login(AuthDtos.LoginRequest request, String ip) {
         rateLimiter.check("login-ip", ip, 10, Duration.ofMinutes(1));
@@ -92,6 +116,9 @@ public class AuthServiceImpl implements AuthService {
         return issueTokens(user);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public AuthDtos.TokenResponse refresh(String refreshToken) {
         String key = refreshKey(refreshToken);
@@ -105,6 +132,9 @@ public class AuthServiceImpl implements AuthService {
         return issueTokens(user);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void logout(UserPrincipal principal, String refreshToken) {
         if (principal != null) {
@@ -118,6 +148,9 @@ public class AuthServiceImpl implements AuthService {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public UserDtos.UserView me(UserPrincipal principal) {
         return userViewMapper.toView(userService.requireActive(principal.id()));

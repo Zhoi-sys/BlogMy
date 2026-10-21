@@ -24,15 +24,38 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 
+/**
+ * Spring Security 配置。
+ *
+ * <p>采用无状态 JWT 鉴权：关闭 Session、CSRF、表单登录和 HTTP Basic，
+ * 在用户名密码过滤器之前加入 {@link JwtAuthenticationFilter}。公开读取接口
+ * 放行，写操作按角色或登录状态保护。</p>
+ *
+ * @since 1.0.0
+ */
 @Configuration
 @EnableMethodSecurity
 public class SecurityConfig {
 
+    /**
+     * 密码编码器。
+     *
+     * @return BCrypt（cost=10）编码器
+     */
     @Bean
     PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder(10);
     }
 
+    /**
+     * 构建安全过滤器链与接口授权规则。
+     *
+     * @param http         HttpSecurity 构建器
+     * @param jwtFilter    JWT 认证过滤器
+     * @param objectMapper JSON 序列化器，用于输出 401/403 统一响应
+     * @return 安全过滤器链
+     * @throws Exception 构建失败时抛出
+     */
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthenticationFilter jwtFilter,
                                             ObjectMapper objectMapper) throws Exception {
@@ -69,6 +92,16 @@ public class SecurityConfig {
         return http.build();
     }
 
+    /**
+     * 输出与 {@link Result} 一致的 401/403 JSON。
+     *
+     * @param response     HTTP 响应
+     * @param objectMapper JSON 序列化器
+     * @param status       HTTP 状态码
+     * @param code         业务错误码
+     * @param message      错误信息
+     * @throws IOException 写出失败时抛出
+     */
     private void writeError(HttpServletResponse response, ObjectMapper objectMapper,
                             int status, int code, String message) throws IOException {
         response.setStatus(status);
@@ -77,6 +110,15 @@ public class SecurityConfig {
         objectMapper.writeValue(response.getWriter(), Result.error(code, message));
     }
 
+    /**
+     * 构建 CORS 配置。
+     *
+     * <p>允许来源由 {@code blog.cors.allowed-origins} 配置，多个用逗号分隔；
+     * 认证通过 Authorization 头传递，因此不开启 Cookie 凭据。</p>
+     *
+     * @param properties 应用配置
+     * @return CORS 配置源
+     */
     @Bean
     CorsConfigurationSource corsConfigurationSource(BlogProperties properties) {
         CorsConfiguration configuration = new CorsConfiguration();

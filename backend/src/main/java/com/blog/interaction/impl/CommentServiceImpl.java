@@ -36,9 +36,18 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+/**
+ * 评论与 @ 回复领域服务实现。
+ *
+ * <p>发表评论时在单事务内完成：敏感词校验、两级父子关系校正、结构化 mention
+ * 生成、文章评论计数、mention 关系和站内通知。删除采用软删除并保留回复上下文。</p>
+ *
+ * @since 1.0.0
+ */
 @Service
 public class CommentServiceImpl implements CommentService {
 
+    /** 评论正文允许的最大字符数。 */
     private static final int MAX_CONTENT_LENGTH = 1000;
 
     private final CommentMapper commentMapper;
@@ -52,11 +61,20 @@ public class CommentServiceImpl implements CommentService {
     private final CommentContentRenderer contentRenderer;
     private final CommentViewAssembler viewAssembler;
 
-    public CommentServiceImpl(CommentMapper commentMapper, ArticleMapper articleMapper, UserMapper userMapper,
-                              MentionMapper mentionMapper, NotificationService notificationService,
-                              SensitiveWordFilter sensitiveWordFilter, RateLimiter rateLimiter,
-                              CursorCodec cursorCodec, CommentContentRenderer contentRenderer,
-                              CommentViewAssembler viewAssembler) {
+    /**
+     * 创建 {@code CommentServiceImpl} 实例，依赖由 Spring 注入。
+     * @param commentMapper 依赖组件
+     * @param articleMapper 依赖组件
+     * @param userMapper 依赖组件
+     * @param mentionMapper 依赖组件
+     * @param notificationService 依赖组件
+     * @param sensitiveWordFilter 依赖组件
+     * @param rateLimiter 依赖组件
+     * @param cursorCodec 依赖组件
+     * @param contentRenderer 依赖组件
+     * @param viewAssembler 依赖组件
+     */
+    public CommentServiceImpl(CommentMapper commentMapper, ArticleMapper articleMapper, UserMapper userMapper, MentionMapper mentionMapper, NotificationService notificationService, SensitiveWordFilter sensitiveWordFilter, RateLimiter rateLimiter, CursorCodec cursorCodec, CommentContentRenderer contentRenderer, CommentViewAssembler viewAssembler) {
         this.commentMapper = commentMapper;
         this.articleMapper = articleMapper;
         this.userMapper = userMapper;
@@ -69,6 +87,9 @@ public class CommentServiceImpl implements CommentService {
         this.viewAssembler = viewAssembler;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public PageResult<InteractionDtos.CommentView> listRoot(Long articleId, String cursor, int size,
                                                              UserPrincipal principal) {
@@ -79,6 +100,9 @@ public class CommentServiceImpl implements CommentService {
         return viewAssembler.assembleRoots(rows, size, principal);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public PageResult<InteractionDtos.CommentView> listReplies(Long rootId, String cursor, int size,
                                                                 UserPrincipal principal) {
@@ -133,6 +157,9 @@ public class CommentServiceImpl implements CommentService {
         return viewAssembler.assembleSingle(comment, principal);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     @Transactional
     public void delete(Long id, UserPrincipal principal) {

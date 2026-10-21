@@ -14,6 +14,15 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Locale;
 
+/**
+ * 博主账号初始化器。
+ *
+ * <p>应用启动时根据 {@code blog.admin.*} 配置创建或提升管理员账号；
+ * 在演示数据初始化之前执行（{@code @Order(0)}），保证演示文章有作者可挂载。
+ * 已存在的博主账号不会被重置密码。</p>
+ *
+ * @since 1.0.0
+ */
 @Component
 @Order(0)
 public class AdminInitializer implements ApplicationRunner {
@@ -25,14 +34,25 @@ public class AdminInitializer implements ApplicationRunner {
     private final PasswordEncoder passwordEncoder;
     private final BlogProperties properties;
 
-    public AdminInitializer(UserMapper userMapper, UserService userService,
-                            PasswordEncoder passwordEncoder, BlogProperties properties) {
+    /**
+     * 创建 {@code AdminInitializer} 实例，依赖由 Spring 注入。
+     * @param userMapper 依赖组件
+     * @param userService 依赖组件
+     * @param passwordEncoder 依赖组件
+     * @param properties 依赖组件
+     */
+    public AdminInitializer(UserMapper userMapper, UserService userService, PasswordEncoder passwordEncoder, BlogProperties properties) {
         this.userMapper = userMapper;
         this.userService = userService;
         this.passwordEncoder = passwordEncoder;
         this.properties = properties;
     }
 
+    /**
+     * 创建或提升博主账号。
+     *
+     * @param args 启动参数
+     */
     @Override
     @Transactional
     public void run(ApplicationArguments args) {

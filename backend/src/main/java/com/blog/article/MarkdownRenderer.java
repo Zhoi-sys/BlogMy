@@ -28,12 +28,14 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Server-side Markdown rendering pipeline.
+ * 服务端 Markdown 渲染与安全清洗管线。
  *
- * <p>Markdown is parsed with Flexmark (GFM tables, task lists, footnotes, autolinks),
- * raw HTML is escaped, the output is sanitized with OWASP Java HTML Sanitizer, and
- * safe presentation attributes (heading anchors, lazy images, code classes) are added
- * afterwards. Mermaid and KaTeX are hydrated by the frontend from the preserved source.</p>
+ * <p>使用 Flexmark 解析 GFM Markdown（表格、任务列表、脚注、自动链接等），
+ * 转义原始 HTML，再通过 OWASP Java HTML Sanitizer 做元素/属性/协议白名单清洗。
+ * 清洗后补充标题锚点、表格滚动容器、代码语言类名、图片懒加载和链接安全属性。
+ * Mermaid 与 KaTeX 的源码会保留，由前端按需渲染。</p>
+ *
+ * @since 1.0.0
  */
 @Component
 public class MarkdownRenderer {
@@ -79,6 +81,12 @@ public class MarkdownRenderer {
         RENDERER = HtmlRenderer.builder(options).build();
     }
 
+    /**
+     * 渲染 Markdown 为安全 HTML 与目录。
+     *
+     * @param markdown 原始 Markdown，可为空
+     * @return 安全 HTML、纯文本与二级/三级标题目录
+     */
     public RenderedDocument render(String markdown) {
         String source = markdown == null ? "" : markdown;
         Node node = PARSER.parse(source);
@@ -146,6 +154,12 @@ public class MarkdownRenderer {
         return new RenderedDocument(html, plainText, toc);
     }
 
+    /**
+     * 从已渲染 HTML 中提取二级/三级标题目录。
+     *
+     * @param html 已渲染 HTML
+     * @return 目录项列表；空 HTML 返回空列表
+     */
     public List<TocEntry> extractToc(String html) {
         if (html == null || html.isBlank()) {
             return List.of();
@@ -159,9 +173,23 @@ public class MarkdownRenderer {
         return toc;
     }
 
+    /**
+     * Markdown 标题目录项。
+     *
+     * @param level 标题层级，2 或 3
+     * @param id    标题锚点 ID
+     * @param text  标题纯文本
+     */
     public record TocEntry(int level, String id, String text) {
     }
 
+    /**
+     * Markdown 渲染结果。
+     *
+     * @param html      清洗后的安全 HTML
+     * @param plainText 用于摘要与阅读时长的纯文本
+     * @param toc       标题目录
+     */
     public record RenderedDocument(String html, String plainText, List<TocEntry> toc) {
     }
 }

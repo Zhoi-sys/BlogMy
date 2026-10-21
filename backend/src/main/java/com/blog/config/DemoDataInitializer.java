@@ -17,6 +17,14 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 
+/**
+ * 本地演示数据初始化器。
+ *
+ * <p>仅在 {@code blog.demo-data=true}、存在博主账号且文章表为空时写入
+ * 三篇示例文章；生产环境默认关闭，避免污染真实数据。</p>
+ *
+ * @since 1.0.0
+ */
 @Component
 @Order(10)
 public class DemoDataInitializer implements ApplicationRunner {
@@ -27,9 +35,15 @@ public class DemoDataInitializer implements ApplicationRunner {
     private final ArticleTagMapper tagMapper;
     private final MarkdownRenderer renderer;
 
-    public DemoDataInitializer(BlogProperties properties, UserService userService,
-                               ArticleMapper articleMapper, ArticleTagMapper tagMapper,
-                               MarkdownRenderer renderer) {
+    /**
+     * 创建 {@code DemoDataInitializer} 实例，依赖由 Spring 注入。
+     * @param properties 依赖组件
+     * @param userService 依赖组件
+     * @param articleMapper 依赖组件
+     * @param tagMapper 依赖组件
+     * @param renderer 依赖组件
+     */
+    public DemoDataInitializer(BlogProperties properties, UserService userService, ArticleMapper articleMapper, ArticleTagMapper tagMapper, MarkdownRenderer renderer) {
         this.properties = properties;
         this.userService = userService;
         this.articleMapper = articleMapper;
@@ -37,6 +51,11 @@ public class DemoDataInitializer implements ApplicationRunner {
         this.renderer = renderer;
     }
 
+    /**
+     * 在条件满足时写入演示文章与标签。
+     *
+     * @param args 启动参数
+     */
     @Override
     @Transactional
     public void run(ApplicationArguments args) {
@@ -146,6 +165,16 @@ public class DemoDataInitializer implements ApplicationRunner {
                 """);
     }
 
+    /**
+     * 创建一篇已发布演示文章并写入标签。
+     *
+     * @param admin    博主账号
+     * @param title    标题
+     * @param summary  摘要
+     * @param tags     标签
+     * @param daysAgo  相对当前时间的天数偏移，用于生成发布时间
+     * @param markdown 正文
+     */
     private void create(User admin, String title, String summary, List<String> tags,
                         int daysAgo, String markdown) {
         MarkdownRenderer.RenderedDocument rendered = renderer.render(markdown);
