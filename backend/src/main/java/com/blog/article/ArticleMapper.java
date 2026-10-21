@@ -37,13 +37,13 @@ public interface ArticleMapper {
     /**
      * 查询首页已发布文章流。
      *
-     * @param keyword    标题/摘要关键词，可为空
-     * @param cursorTime 上一页最后一条的发布时间，首页为空
-     * @param cursorId   上一页最后一条的文章 ID，首页为空
-     * @param limit      查询条数，通常为 pageSize + 1
+     * @param keywordPattern 已包含 {@code %} 的 LIKE 模式，可为空
+     * @param cursorTime     上一页最后一条的发布时间，首页为空
+     * @param cursorId       上一页最后一条的文章 ID，首页为空
+     * @param limit          查询条数，通常为 pageSize + 1
      * @return 按发布时间倒序的文章列表
      */
-    List<Article> selectFeed(@Param("keyword") String keyword,
+    List<Article> selectFeed(@Param("keywordPattern") String keywordPattern,
                              @Param("cursorTime") LocalDateTime cursorTime,
                              @Param("cursorId") Long cursorId,
                              @Param("limit") int limit);

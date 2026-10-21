@@ -4,17 +4,26 @@ spring:
       - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
       - org.springframework.boot.autoconfigure.data.redis.RedisReactiveAutoConfiguration
   datasource:
-    url: jdbc:h2:file:./.data/blog;MODE=MySQL;DATABASE_TO_LOWER=TRUE;CASE_INSENSITIVE_IDENTIFIERS=TRUE;AUTO_SERVER=TRUE
-    username: sa
-    password:
-    driver-class-name: org.h2.Driver
+    # 本地 SQLite 文件库；首次启动自动建表。
+    url: jdbc:sqlite:./.data/blog.db
+    driver-class-name: org.sqlite.JDBC
+    hikari:
+      # SQLite 为单写者模型，本地使用单连接避免写锁竞争。
+      maximum-pool-size: 1
+      minimum-idle: 1
+      connection-init-sql: PRAGMA busy_timeout = 5000
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:db/sqlite/schema.sql
+      encoding: UTF-8
   data:
     redis:
       repositories:
         enabled: false
   flyway:
-    enabled: true
-    clean-disabled: false
+    # SQLite 使用 schema.sql 初始化；MySQL 生产环境仍由 Flyway 管理。
+    enabled: false
 
 blog:
   jwt:

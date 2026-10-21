@@ -24,6 +24,7 @@
         <flexmark.version>0.64.8</flexmark.version>
         <html-sanitizer.version>20240325.1</html-sanitizer.version>
         <jsoup.version>1.21.1</jsoup.version>
+        <sqlite-jdbc.version>3.53.4.0</sqlite-jdbc.version>
     </properties>
 
     <dependencies>
@@ -62,6 +63,13 @@
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+        <!-- 本地开发数据库：无需安装服务的 SQLite -->
+        <dependency>
+            <groupId>org.xerial</groupId>
+            <artifactId>sqlite-jdbc</artifactId>
+            <version>${sqlite-jdbc.version}</version>
             <scope>runtime</scope>
         </dependency>
         <dependency>

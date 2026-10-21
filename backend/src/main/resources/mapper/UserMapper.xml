@@ -37,8 +37,8 @@
         <if test="excludeUserId != null">
             AND id != #{excludeUserId}
         </if>
-        AND (username LIKE CONCAT('%', #{keyword}, '%')
-             OR nickname LIKE CONCAT('%', #{keyword}, '%'))
+        AND (username LIKE #{keywordPattern}
+             OR nickname LIKE #{keywordPattern})
         ORDER BY id ASC
         LIMIT #{limit}
     </select>

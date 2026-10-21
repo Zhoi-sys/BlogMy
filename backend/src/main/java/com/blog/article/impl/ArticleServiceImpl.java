@@ -73,8 +73,9 @@ public class ArticleServiceImpl implements ArticleService {
     public PageResult<ArticleDtos.ArticleCard> feed(String keyword, String cursor, int size) {
         int fetchSize = fetchSize(size);
         CursorCodec.Cursor decoded = cursorCodec.decode(cursor);
+        String normalizedKeyword = keyword == null ? "" : keyword.strip();
         List<Article> rows = articleMapper.selectFeed(
-                keyword == null ? "" : keyword.strip(),
+                normalizedKeyword.isBlank() ? null : "%" + normalizedKeyword + "%",
                 time(decoded), id(decoded), fetchSize);
         return viewAssembler.toCardPage(rows, size,
                 article -> cursorCodec.encode(article.getPublishTime(), article.getId()));

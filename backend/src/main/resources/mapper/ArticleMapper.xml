@@ -32,9 +32,9 @@
         WHERE deleted = 0
           AND status = 1
           AND publish_time IS NOT NULL
-        <if test="keyword != null and keyword != ''">
-            AND (title LIKE CONCAT('%', #{keyword}, '%')
-                 OR summary LIKE CONCAT('%', #{keyword}, '%'))
+        <if test="keywordPattern != null and keywordPattern != ''">
+            AND (title LIKE #{keywordPattern}
+                 OR summary LIKE #{keywordPattern})
         </if>
         <if test="cursorTime != null">
             AND (publish_time &lt; #{cursorTime}

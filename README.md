@@ -32,13 +32,13 @@ Nuxt 4 SSR (Vue 3 + Pinia + Vditor)  ── REST /api ──►  Spring Boot 3.5
    │ Nitro routes: sitemap / rss / robots                    ├─ Spring Security + JWT
    ▼                                                        ├─ Markdown 安全渲染管线
 Nginx (compose) ── /api ────────────────────────────────────►├─ MyBatis + XML SQL
-                                                            ├─ MySQL 8.4
-                                                            └─ Redis 7.4
+                                                            ├─ MySQL 8.4（生产）/ SQLite（本地）
+                                                            └─ Redis 7.4 / 内存实现（本地）
 ```
 
 - **前端**：Nuxt 4.6 / Vue 3.5 / TypeScript / Pinia / Vditor 3。选择 SSR 而非纯 SPA，是为了让文章正文、标题和 OG 标签直接出现在首屏 HTML 中，符合博客的 SEO 需求；管理端页面仍然保持 SPA 式交互。
 - **后端**：Spring Boot 3.5.6、Java 17、Spring Security、MyBatis 3.0.5、Flyway。按业务分包，不引入微服务复杂度，保留后续拆分空间。
-- **数据库**：MySQL 8.4；SQL 全部集中在 `backend/src/main/resources/mapper/*.xml`，Service 不拼接 SQL。
+- **数据库**：生产使用 MySQL 8.4（Flyway 迁移）；本地开发使用 SQLite（`schema.sql` 初始化，零安装）；自动化测试使用 H2 内存库。SQL 全部集中在 `backend/src/main/resources/mapper/*.xml`，Service 不拼接 SQL。
 - **缓存/会话辅助**：Redis 7.4 存 Refresh Token、Access Token 黑名单、阅读防刷和接口限流；本地开发用内存实现，无需安装 Redis。
 - **部署**：Docker Compose + Nginx；Nginx 同源代理 `/api`，避免跨域与 Cookie 问题。
 
@@ -58,7 +58,8 @@ Nginx (compose) ── /api ─────────────────�
 │   │   └── security/              # JWT、过滤器、Principal
 │   └── src/main/resources/
 │       ├── mapper/                # 全部 MyBatis XML
-│       └── db/migration/          # Flyway V1
+│       ├── db/migration/          # MySQL Flyway V1
+│       └── db/sqlite/schema.sql   # 本地 SQLite 建表脚本
 ├── frontend/                      # Nuxt 4 SSR
 │   ├── app/pages/                 # 首页/文章/空间/登录/编辑/管理/通知
 │   ├── app/components/            # 编辑器、评论树、Markdown 渲染增强
@@ -73,10 +74,10 @@ Nginx (compose) ── /api ─────────────────�
 
 ## 4. 本地启动（无需 MySQL / Redis）
 
-前置：JDK 17、Node.js ≥ 24.15（或使用仓库内 pnpm 环境）。后端首次启动自动建 H2 文件库，并写入 3 篇演示文章。
+前置：JDK 17、Node.js ≥ 24.15（或使用仓库内 pnpm 环境）。后端首次启动自动创建 **SQLite** 文件库（`backend/.data/blog.db`）并写入 3 篇演示文章，无需安装 MySQL 或 Redis。
 
 ```powershell
-# 终端 1：后端（H2 + 内存 Token 存储）
+# 终端 1：后端（SQLite + 内存 Token 存储）
 cd backend
 .\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=local"
 
@@ -89,7 +90,8 @@ pnpm dev
 - 打开 `http://localhost:3000`
 - 本地演示博主：`admin` / `Admin@123456`
 - 读者可自行注册并参与评论、点赞
-- H2 数据文件：`backend/.data/blog.mv.db`；删除 `.data` 目录并重启可重置演示数据
+- SQLite 数据文件：`backend/.data/blog.db`；删除该文件并重启可重置演示数据
+- 本地建表脚本：`backend/src/main/resources/db/sqlite/schema.sql`；生产 MySQL 仍使用 Flyway
 - 后端健康检查：`http://localhost:8080/actuator/health`
 - 前端 SSR 默认通过 `NUXT_API_BASE=http://localhost:8080/api` 访问后端，浏览器直接访问后端并依赖 CORS（local 默认允许 `http://localhost:3000`）
 

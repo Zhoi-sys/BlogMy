@@ -44,12 +44,12 @@ public interface UserMapper {
     /**
      * 按用户名或昵称模糊搜索用户。
      *
-     * @param keyword       搜索关键词
-     * @param excludeUserId 排除的用户 ID，可为空
-     * @param limit         最大返回条数
+     * @param keywordPattern 已包含 {@code %} 的 LIKE 模式
+     * @param excludeUserId  排除的用户 ID，可为空
+     * @param limit          最大返回条数
      * @return 用户列表
      */
-    List<User> search(@Param("keyword") String keyword,
+    List<User> search(@Param("keywordPattern") String keywordPattern,
                       @Param("excludeUserId") Long excludeUserId,
                       @Param("limit") int limit);
 

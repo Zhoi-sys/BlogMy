@@ -117,7 +117,7 @@ public class UserServiceImpl implements UserService {
         if (normalized.isBlank()) {
             return List.of();
         }
-        return userMapper.search(normalized, excludeUserId, 8).stream()
+        return userMapper.search("%" + normalized + "%", excludeUserId, 8).stream()
                 .map(userViewMapper::toSummary)
                 .toList();
     }
