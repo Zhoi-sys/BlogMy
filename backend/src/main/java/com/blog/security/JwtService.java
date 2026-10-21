@@ -26,7 +26,10 @@ import java.util.UUID;
 @Service
 public class JwtService {
 
+    /** HMAC 签名密钥，由配置的 Base64 密钥解码得到。 */
     private final SecretKey key;
+
+    /** JWT 有效期等应用配置。 */
     private final BlogProperties properties;
 
     /**

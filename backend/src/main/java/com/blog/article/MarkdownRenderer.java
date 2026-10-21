@@ -40,6 +40,7 @@ import java.util.Set;
 @Component
 public class MarkdownRenderer {
 
+    /** HTML 元素、属性与 URL 协议的白名单策略。 */
     private static final PolicyFactory POLICY = new HtmlPolicyBuilder()
             .allowElements(
                     "a", "p", "h1", "h2", "h3", "h4", "h5", "h6",
@@ -58,7 +59,10 @@ public class MarkdownRenderer {
             .allowUrlProtocols("http", "https", "mailto")
             .toFactory();
 
+    /** 线程安全的 Flexmark Markdown 解析器。 */
     private static final Parser PARSER;
+
+    /** 线程安全的 Flexmark HTML 渲染器。 */
     private static final HtmlRenderer RENDERER;
 
     static {

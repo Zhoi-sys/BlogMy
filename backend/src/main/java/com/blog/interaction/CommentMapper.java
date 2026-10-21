@@ -111,7 +111,10 @@ public interface CommentMapper {
      * @since 1.0.0
      */
     class ReplyCount {
+        /** 一级评论 ID。 */
         private Long parentId;
+
+        /** 该一级评论下的回复总数。 */
         private Long replyCount;
 
         /**

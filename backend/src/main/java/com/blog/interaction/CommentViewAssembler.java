@@ -32,6 +32,7 @@ import java.util.stream.Collectors;
 @Component
 public class CommentViewAssembler {
 
+    /** 每条一级评论默认携带的回复预览数。 */
     private static final int PREVIEW_REPLY_COUNT = 3;
 
     private final CommentMapper commentMapper;

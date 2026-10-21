@@ -21,6 +21,7 @@ import java.util.regex.Pattern;
 @Component
 public class CommentContentRenderer {
 
+    /** 结构化 mention 标记：{@code [@昵称](uid:123)}。 */
     private static final Pattern MENTION = Pattern.compile("\\[@([^\\]]{1,64})]\\(uid:(\\d+)\\)");
 
     /**
